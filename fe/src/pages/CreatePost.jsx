@@ -107,7 +107,7 @@ const CreatePost = () => {
           <Upload
             showUploadList={false}
             beforeUpload={(file) => {
-              setFileList([...fileList, file]);
+              setFileList([...fileList, { originFileObj: file }]);
               return false;
             }}
             multiple
