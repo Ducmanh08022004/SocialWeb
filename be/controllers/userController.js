@@ -64,18 +64,37 @@ const updateAvatar = async (req, res) => {
     const userId = req.user.id;
     if (!req.file) return res.status(400).json({ message: 'Chưa có file upload' });
 
-    // Upload avatar mới
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'social_app/avatars',
-      resource_type: "auto" 
-    });
-    fs.unlinkSync(req.file.path);
+    let avatarUrl = '';
+    let publicId = null;
+
+    const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+                                   process.env.CLOUDINARY_API_KEY && 
+                                   process.env.CLOUDINARY_API_SECRET;
+
+    if (isCloudinaryConfigured) {
+        try {
+            // Upload avatar mới
+            const result = await cloudinary.uploader.upload(req.file.path, {
+              folder: 'social_app/avatars',
+              resource_type: "auto" 
+            });
+            avatarUrl = result.secure_url;
+            publicId = result.public_id;
+            
+            try { fs.unlinkSync(req.file.path); } catch (e) { }
+        } catch (uploadError) {
+            console.error(`Cloudinary upload failed: ${uploadError.message}`);
+            avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        }
+    } else {
+        avatarUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    }
 
     // Lấy profile
     let profile = await Profile.findOne({ where: { user_id: userId } });
 
     // Xóa avatar cũ nếu có
-    if (profile && profile.avatar_public_id) {
+    if (profile && profile.avatar_public_id && isCloudinaryConfigured && publicId) {
       try {
         await cloudinary.uploader.destroy(profile.avatar_public_id, {
           resource_type: "image"
@@ -89,21 +108,21 @@ const updateAvatar = async (req, res) => {
     if (!profile) {
       profile = await Profile.create({
         user_id: userId,
-        avatar_url: result.secure_url,
-        avatar_public_id: result.public_id,
+        avatar_url: avatarUrl,
+        avatar_public_id: publicId,
         updated_at: new Date()
       });
     } else {
       await profile.update({
-        avatar_url: result.secure_url,
-        avatar_public_id: result.public_id,
+        avatar_url: avatarUrl,
+        avatar_public_id: publicId,
         updated_at: new Date()
       });
     }
 
     res.json({ 
       message: 'Cập nhật avatar thành công', 
-      image_url: result.secure_url 
+      image_url: avatarUrl 
     });
 
   } catch (err) {
@@ -116,18 +135,37 @@ const updateCover = async (req, res) => {
     const userId = req.user.id;
     if (!req.file) return res.status(400).json({ message: 'Chưa có file upload' });
 
-    // Upload cover mới
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: 'social_app/covers',
-      resource_type: "auto" 
-    });
-    fs.unlinkSync(req.file.path);
+    let coverUrl = '';
+    let publicId = null;
+
+    const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+                                   process.env.CLOUDINARY_API_KEY && 
+                                   process.env.CLOUDINARY_API_SECRET;
+
+    if (isCloudinaryConfigured) {
+        try {
+            // Upload cover mới
+            const result = await cloudinary.uploader.upload(req.file.path, {
+              folder: 'social_app/covers',
+              resource_type: "auto" 
+            });
+            coverUrl = result.secure_url;
+            publicId = result.public_id;
+            
+            try { fs.unlinkSync(req.file.path); } catch (e) { }
+        } catch (uploadError) {
+            console.error(`Cloudinary upload failed: ${uploadError.message}`);
+            coverUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        }
+    } else {
+        coverUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    }
 
     // Lấy profile
     let profile = await Profile.findOne({ where: { user_id: userId } });
 
     // Xóa cover cũ nếu có
-    if (profile && profile.cover_public_id) {
+    if (profile && profile.cover_public_id && isCloudinaryConfigured && publicId) {
       try {
         await cloudinary.uploader.destroy(profile.cover_public_id, {
           resource_type: "image"
@@ -141,21 +179,21 @@ const updateCover = async (req, res) => {
     if (!profile) {
       profile = await Profile.create({
         user_id: userId,
-        cover_url: result.secure_url,
-        cover_public_id: result.public_id,
+        cover_url: coverUrl,
+        cover_public_id: publicId,
         updated_at: new Date()
       });
     } else {
       await profile.update({
-        cover_url: result.secure_url,
-        cover_public_id: result.public_id,
+        cover_url: coverUrl,
+        cover_public_id: publicId,
         updated_at: new Date()
       });
     }
 
     res.json({ 
       message: 'Cập nhật ảnh bìa thành công', 
-      image_url: result.secure_url 
+      image_url: coverUrl 
     });
 
   } catch (err) {

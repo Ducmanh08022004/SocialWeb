@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { Card, Input, Button, Avatar, Typography, Upload, message, Divider } from 'antd';
-import { PictureOutlined, UserOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Avatar, Typography, Upload, message, Divider, Select, Space, Tooltip } from 'antd';
+import { PictureOutlined, UserOutlined, BulbOutlined } from '@ant-design/icons';
 import { useAuth } from '../context/AuthContext';
 import axiosClient from '../api/axiosClient';
 import { useNavigate } from 'react-router-dom';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { Option } = Select;
 
 const CreatePost = () => {
   const { user } = useAuth();
@@ -14,9 +15,30 @@ const CreatePost = () => {
   const [content, setContent] = useState('');
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiTone, setAiTone] = useState('tự nhiên');
 
   const handleUploadChange = ({ fileList: newFileList }) => {
     setFileList(newFileList);
+  };
+
+  const handleMagicCaption = async () => {
+    setAiLoading(true);
+    try {
+      const res = await axiosClient.post('/ai/caption', {
+        tone: aiTone,
+        topic: content || 'Một ngày tuyệt vời'
+      });
+      if (res.data && res.data.caption) {
+        setContent(res.data.caption);
+        message.success('Caption generated!');
+      }
+    } catch (error) {
+      console.error('AI Caption error:', error);
+      message.error('Failed to generate caption');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -87,6 +109,29 @@ const CreatePost = () => {
           value={content}
           onChange={(e) => setContent(e.target.value)}
         />
+
+        <div style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Select 
+            defaultValue="tự nhiên" 
+            style={{ width: 120 }} 
+            onChange={setAiTone}
+            disabled={aiLoading}
+          >
+            <Option value="tự nhiên">Tự nhiên</Option>
+            <Option value="hài hước">Hài hước</Option>
+            <Option value="nghiêm túc">Nghiêm túc</Option>
+            <Option value="buồn">Buồn</Option>
+            <Option value="sâu sắc">Sâu sắc</Option>
+          </Select>
+          <Button 
+            type="dashed" 
+            icon={<BulbOutlined />} 
+            onClick={handleMagicCaption}
+            loading={aiLoading}
+          >
+            Magic Caption
+          </Button>
+        </div>
 
         <div style={{ marginBottom: '24px' }}>
            <Upload

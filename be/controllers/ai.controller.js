@@ -8,14 +8,17 @@ const { Op } = require('sequelize');
  */
 exports.suggestCaption = async (req, res) => {
   try {
-    const { tone } = req.body;
+    const { tone, topic } = req.body;
 
-    const prompt = `
+    let prompt = `
 Bạn là trợ lý mạng xã hội.
 Hãy viết MỘT caption ngắn gọn, tự nhiên, bằng tiếng Việt.
 Phong cách (tone): ${tone || 'tự nhiên'}.
-Không dùng emoji quá nhiều.
 `;
+    if (topic) {
+      prompt += `Nội dung chính: ${topic}\n`;
+    }
+    prompt += `Không dùng emoji quá nhiều.`;
 
     const result = await gemini.generateContent(prompt);
 

@@ -1,7 +1,8 @@
 
-const { sequelize, Post, PostMedia, User, Profile, Like, Comment } = require('../models');
+const { sequelize, Post, PostMedia, User, Profile, Like, Comment, Friendship } = require('../models');
 const cloudinary = require('../config/cloudinary');
 const fs = require('fs');
+const { Op } = require('sequelize');
 
 const createPost = async (req, res) => {
   console.log('--- CREATE POST ---');
@@ -27,32 +28,58 @@ const createPost = async (req, res) => {
         console.log(`Processing file: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`);
         const isVideo = file.mimetype.startsWith('video/');
         
-        try {
-          const result = await cloudinary.uploader.upload(file.path, {
-            resource_type: "auto",
-            folder: 'social_app/posts',
-            // Thêm timeout cho video upload dài
-            timeout: 120000,
-          });
-          
-          console.log(`✓ Uploaded ${file.originalname} to Cloudinary:`, result.secure_url);
+        let mediaUrl = '';
+        let publicId = null;
+        
+        const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
+                                       process.env.CLOUDINARY_API_KEY && 
+                                       process.env.CLOUDINARY_API_SECRET;
 
-          uploads.push({
-            post_id: post.id,
-            media_url: result.secure_url,
-            type: isVideo ? 'video' : 'image',
-            public_id: result.public_id || null
-          });
-        } catch (uploadError) {
-          console.error(`✗ Failed to upload ${file.originalname}:`, uploadError.message);
-          throw uploadError;
+        if (isCloudinaryConfigured) {
+            try {
+              const result = await cloudinary.uploader.upload(file.path, {
+                resource_type: "auto",
+                folder: 'social_app/posts',
+                timeout: 120000,
+              });
+              
+              console.log(`✓ Uploaded ${file.originalname} to Cloudinary:`, result.secure_url);
+              mediaUrl = result.secure_url;
+              publicId = result.public_id;
+
+              try { fs.unlinkSync(file.path); } catch (e) { }
+            } catch (uploadError) {
+              console.error(`✗ Failed to upload ${file.originalname} to Cloudinary:`, uploadError.message);
+              // Fallback to local storage
+              mediaUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+              console.log(`Using local storage fallback: ${mediaUrl}`);
+            }
+        } else {
+            // Fallback to local storage
+            mediaUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
+            console.log(`Cloudinary not configured. Using local storage: ${mediaUrl}`);
         }
 
-        try { fs.unlinkSync(file.path); } catch (e) { }
+        uploads.push({
+            post_id: post.id,
+            media_url: mediaUrl,
+            type: isVideo ? 'video' : 'image',
+            public_id: publicId
+        });
       }
 
-      await PostMedia.bulkCreate(uploads);
-      console.log(`✓ Created ${uploads.length} media records`);
+      console.log('Preparing to bulkCreate PostMedia with:', JSON.stringify(uploads, null, 2));
+      try {
+        const createdMedia = await PostMedia.bulkCreate(uploads);
+        console.log(`✓ Created ${createdMedia.length} media records in DB`);
+      } catch (mediaError) {
+        console.error('❌ Error creating PostMedia records:', mediaError);
+        // Don't throw here to allow post creation to succeed even if media fails (or handle as you wish)
+        // But usually we want to know.
+        throw mediaError; 
+      }
+    } else {
+      console.log('No files received in req.files');
     }
 
     const media = await PostMedia.findAll({ where: { post_id: post.id } });
@@ -106,6 +133,28 @@ const listPosts = async (req, res) => {
     const where = {};
     if (userId) {
       where.user_id = userId;
+    } else if (req.user) {
+      // Feed: Show posts from friends + self
+      const currentUserId = req.user.id;
+      
+      const friendships = await Friendship.findAll({
+        where: {
+          status: 'accepted',
+          [Op.or]: [
+            { user_id: currentUserId },
+            { friend_id: currentUserId }
+          ]
+        }
+      });
+
+      const friendIds = friendships.map(f => 
+        f.user_id === currentUserId ? f.friend_id : f.user_id
+      );
+      
+      // Add self
+      friendIds.push(currentUserId);
+
+      where.user_id = { [Op.in]: friendIds };
     }
 
     const posts = await Post.findAll({

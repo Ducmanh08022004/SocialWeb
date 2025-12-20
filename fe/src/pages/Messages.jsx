@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty } from 'antd';
-import { SendOutlined, UserOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty, Tooltip } from 'antd';
+import { SendOutlined, UserOutlined, InfoCircleOutlined, BulbOutlined } from '@ant-design/icons';
 import { io } from 'socket.io-client';
 import { useLocation } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
@@ -19,6 +19,7 @@ const Messages = () => {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const activeConversationIdRef = useRef(null);
@@ -170,6 +171,31 @@ const Messages = () => {
     setNewMessage('');
   };
 
+  const handleSuggestReply = async () => {
+    if (!messages.length) return;
+    
+    setAiLoading(true);
+    try {
+      // Get last 5 messages for context
+      const contextMessages = messages.slice(-5).map(m => ({
+        content: m.content,
+        isMine: m.sender_id === user.id
+      }));
+
+      const res = await axiosClient.post('/ai/suggest-reply', {
+        messages: contextMessages
+      });
+
+      if (res.data && res.data.reply) {
+        setNewMessage(res.data.reply);
+      }
+    } catch (error) {
+      console.error('AI Suggest error:', error);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -279,7 +305,16 @@ const Messages = () => {
 
             {/* Input Area */}
             <div style={{ padding: '16px', background: '#fff', borderTop: '1px solid #f0f0f0' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
+                <Tooltip title="Gợi ý trả lời nhanh">
+                  <Button 
+                    icon={<BulbOutlined />} 
+                    shape="circle"
+                    onClick={handleSuggestReply}
+                    loading={aiLoading}
+                    disabled={messages.length === 0}
+                  />
+                </Tooltip>
                 <TextArea 
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}

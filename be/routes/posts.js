@@ -5,7 +5,7 @@ const {upload,checkFileSize }= require('../middlewares/upload');
 const { createPost, getPost, listPosts, deletePost, getPostComments, likePost, unlikePost, updatePost } = require('../controllers/postController');
 
 router.post('/', auth, upload.array('media', 10), checkFileSize, createPost);
-router.get('/', listPosts);
+router.get('/', auth, listPosts);
 router.post('/:id/like', auth, likePost);
 router.delete('/:id/like', auth, unlikePost);
 router.get('/:id/comments', getPostComments);
