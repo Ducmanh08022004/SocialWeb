@@ -8,7 +8,7 @@ router.get('/me', auth, getMyProfile);
 router.get('/search', auth, searchUsers);
 router.get('/:userId', auth, getProfileById);
 router.put('/me', auth, updateProfile);
-router.post('/avatar', auth, upload.single('avatar'), checkFileSize, updateAvatar);
+router.post('/avatar', auth, upload.single('image'), checkFileSize, updateAvatar);
 router.post('/cover', auth, upload.single('image'), checkFileSize, updateCover);
 
 module.exports = router;
