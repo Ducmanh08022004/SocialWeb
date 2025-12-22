@@ -7,6 +7,10 @@ class Profile extends Model {
       fullname: { type: DataTypes.STRING(100) },
       des: { type: DataTypes.TEXT },
       avatar_url: { type: DataTypes.STRING(255) },
+      avatar_type: {
+          type: DataTypes.ENUM('image','model3d'),
+          defaultValue: 'image'
+      },
       avatar_public_id: { type: DataTypes.STRING(255) },
       cover_url: { type: DataTypes.STRING(255) },
       cover_public_id: { type: DataTypes.STRING(255) },

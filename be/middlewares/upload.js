@@ -15,17 +15,23 @@ const storage = multer.diskStorage({
 
 // Middleware kiểm tra type + size
 const fileFilter = (req, file, cb) => {
-  const isImage = file.mimetype.startsWith("image/");
-  const isVideo = file.mimetype.startsWith("video/");
+  const ext = path.extname(file.originalname).toLowerCase();
 
-  if (!isImage && !isVideo) return cb(new Error('Chỉ hỗ trợ ảnh và video'), false);
+  const isImage = file.mimetype.startsWith('image/');
+  const isVideo = file.mimetype.startsWith('video/');
+  const is3D = ['.glb', '.gltf', '.fbx', '.obj'].includes(ext);
 
-  // Lưu thông tin file vào object để kiểm tra sau
+  if (!isImage && !isVideo && !is3D) {
+    return cb(new Error('Chỉ hỗ trợ ảnh, video và model 3D'), false);
+  }
+
   file._isImage = isImage;
   file._isVideo = isVideo;
-  
+  file._is3D = is3D;
+
   cb(null, true);
 };
+
 
 // Khởi tạo multer (bỏ limits chung)
 const upload = multer({ storage, fileFilter });
@@ -38,6 +44,8 @@ const checkFileSize = (req, res, next) => {
       return res.status(400).json({ message: `Ảnh ${file.originalname} quá lớn (max 5MB)` });
     if (file._isVideo && file.size > 50 * 1024 * 1024)
       return res.status(400).json({ message: `Video ${file.originalname} quá lớn (max 50MB)` });
+    if (file._is3D && file.size > 10 * 1024 * 1024)
+      return res.status(400).json({message: `Model 3D ${file.originalname} quá lớn (max 10MB)`});
   }
   next();
 };

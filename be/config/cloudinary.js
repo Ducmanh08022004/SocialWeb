@@ -7,7 +7,7 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
   // Tăng timeout cho video upload dài
-  upload_timeout: 120000,
+  upload_timeout: 200000,
 });
 
 module.exports = cloudinary;

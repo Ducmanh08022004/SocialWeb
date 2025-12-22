@@ -6,14 +6,12 @@ const { Op } = require('sequelize');
 
 const createPost = async (req, res) => {
   console.log('--- CREATE POST ---');
-  console.log('req.body:', req.body);
-  console.log('req.files:', req.files);
-  console.log('Number of files:', req.files?.length);
-  
+
   try {
     const userId = req.user.id;
-    const { content, privacy } = req.body;
+    const { content, privacy, defaultModels } = req.body;
 
+    // 1️⃣ Tạo post
     const post = await Post.create({
       user_id: userId,
       content,
@@ -21,74 +19,86 @@ const createPost = async (req, res) => {
       created_at: new Date()
     });
 
-    if (req.files && req.files.length > 0) {
-      const uploads = [];
+    const uploads = [];
+    const cloudinaryReady =
+      process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET;
 
+    // 2️⃣ Upload FILE (ảnh / video / model 3D)
+    if (req.files?.length) {
       for (const file of req.files) {
-        console.log(`Processing file: ${file.originalname}, mimetype: ${file.mimetype}, size: ${file.size}`);
-        const isVideo = file.mimetype.startsWith('video/');
-        
+        let mediaType = 'image';
+        if (file._isVideo) mediaType = 'video';
+        if (file._is3D) mediaType = 'model3d';
+
         let mediaUrl = '';
         let publicId = null;
-        
-        const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && 
-                                       process.env.CLOUDINARY_API_KEY && 
-                                       process.env.CLOUDINARY_API_SECRET;
 
-        if (isCloudinaryConfigured) {
-            try {
-              const result = await cloudinary.uploader.upload(file.path, {
-                resource_type: "auto",
-                folder: 'social_app/posts',
-                timeout: 120000,
-              });
-              
-              console.log(`✓ Uploaded ${file.originalname} to Cloudinary:`, result.secure_url);
-              mediaUrl = result.secure_url;
-              publicId = result.public_id;
+        try {
+          if (cloudinaryReady) {
+            const result = await cloudinary.uploader.upload(file.path, {
+              folder:
+                mediaType === 'model3d'
+                  ? 'social_app/post_3d'
+                  : 'social_app/posts',
+              resource_type:
+                mediaType === 'model3d' ? 'raw' : 'auto',
+              timeout: 120000
+            });
 
-              try { fs.unlinkSync(file.path); } catch (e) { }
-            } catch (uploadError) {
-              console.error(`✗ Failed to upload ${file.originalname} to Cloudinary:`, uploadError.message);
-              // Fallback to local storage
-              mediaUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-              console.log(`Using local storage fallback: ${mediaUrl}`);
-            }
-        } else {
-            // Fallback to local storage
+            mediaUrl = result.secure_url;
+            publicId = result.public_id;
+            fs.unlinkSync(file.path);
+          } else {
             mediaUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-            console.log(`Cloudinary not configured. Using local storage: ${mediaUrl}`);
+          }
+        } catch (err) {
+          console.error('Upload error:', err.message);
+          mediaUrl = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
         }
 
         uploads.push({
-            post_id: post.id,
-            media_url: mediaUrl,
-            type: isVideo ? 'video' : 'image',
-            public_id: publicId
+          post_id: post.id,
+          media_url: mediaUrl,
+          type: mediaType,
+          public_id: publicId
         });
       }
-
-      console.log('Preparing to bulkCreate PostMedia with:', JSON.stringify(uploads, null, 2));
-      try {
-        const createdMedia = await PostMedia.bulkCreate(uploads);
-        console.log(`✓ Created ${createdMedia.length} media records in DB`);
-      } catch (mediaError) {
-        console.error('❌ Error creating PostMedia records:', mediaError);
-        // Don't throw here to allow post creation to succeed even if media fails (or handle as you wish)
-        // But usually we want to know.
-        throw mediaError; 
-      }
-    } else {
-      console.log('No files received in req.files');
     }
 
-    const media = await PostMedia.findAll({ where: { post_id: post.id } });
+    // 3️⃣ Model 3D MẶC ĐỊNH
+    if (Array.isArray(defaultModels)) {
+      for (const model of defaultModels) {
+        uploads.push({
+          post_id: post.id,
+          media_url: `${process.env.CDN_URL}/default-models/${model}.glb`,
+          type: 'model3d',
+          public_id: null
+        });
+      }
+    }
+
+    // 4️⃣ Lưu media
+    if (uploads.length) {
+      await PostMedia.bulkCreate(uploads);
+    }
+
+    const media = await PostMedia.findAll({
+      where: { post_id: post.id }
+    });
+
     res.json({ post, media });
+
   } catch (err) {
     console.error('CREATE POST ERROR:', err);
-    res.status(500).json({ message: 'Lỗi upload bài viết', error: err.message });
+    res.status(500).json({
+      message: 'Lỗi upload bài viết',
+      error: err.message
+    });
   }
 };
+
 
 const getPost = async (req, res) => {
   try {
