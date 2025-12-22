@@ -290,9 +290,6 @@ const PostItem = ({ post, onDelete }) => {
         >
             <MessageOutlined style={{ fontSize: '18px' }} /> {commentCount || 0}
         </span>
-        <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShareAltOutlined style={{ fontSize: '18px' }} /> {post.shareCount || 0}
-        </span>
       </div>
 
       {/* Comments Section */}

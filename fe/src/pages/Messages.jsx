@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty, Tooltip } from 'antd';
+import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty, Tooltip, message } from 'antd';
 import { SendOutlined, UserOutlined, InfoCircleOutlined, BulbOutlined } from '@ant-design/icons';
 import { io } from 'socket.io-client';
 import { useLocation } from 'react-router-dom';
@@ -119,14 +119,42 @@ const Messages = () => {
 
   // Handle auto-open conversation from navigation state
   useEffect(() => {
-    if (location.state?.conversationId && conversations.length > 0 && !activeConversation) {
-      const targetConv = conversations.find(c => c.id === location.state.conversationId);
-      if (targetConv) {
-        setActiveConversation(targetConv);
-        // Clear state so it doesn't keep resetting
-        window.history.replaceState({}, document.title);
-      }
-    }
+    const handleNavigation = async () => {
+        if (location.state?.targetUserId && !activeConversation) {
+             try {
+                const res = await axiosClient.post('/chat/private', { userId: location.state.targetUserId });
+                const conversation = res.conversation;
+                
+                if (conversation) {
+                    let targetConv = conversations.find(c => c.id === conversation.id);
+                    
+                    if (!targetConv) {
+                        // If conversation exists but not in current list (e.g. new), refresh list
+                        const listRes = await axiosClient.get('/chat/conversations');
+                        const newConversations = listRes.data || [];
+                        setConversations(newConversations);
+                        targetConv = newConversations.find(c => c.id === conversation.id);
+                    }
+                    
+                    if (targetConv) {
+                        setActiveConversation(targetConv);
+                    }
+                    window.history.replaceState({}, document.title);
+                }
+             } catch (error) {
+                 console.error("Failed to start conversation", error);
+                 message.error("Failed to start conversation");
+             }
+        } else if (location.state?.conversationId && conversations.length > 0 && !activeConversation) {
+            const targetConv = conversations.find(c => c.id === location.state.conversationId);
+            if (targetConv) {
+                setActiveConversation(targetConv);
+                window.history.replaceState({}, document.title);
+            }
+        }
+    };
+    
+    handleNavigation();
   }, [conversations, location.state, activeConversation]);
 
   // Join room when active conversation changes

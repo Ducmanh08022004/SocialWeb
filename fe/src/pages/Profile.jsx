@@ -8,7 +8,16 @@ import {
   MessageOutlined, 
   ShareAltOutlined,
   CheckCircleFilled,
-  UploadOutlined
+  UploadOutlined,
+  UserAddOutlined,
+  UserDeleteOutlined,
+  CheckOutlined,
+  CloseOutlined,
+  StopOutlined,
+  CameraOutlined,
+  DragOutlined,
+  SaveOutlined,
+  UserOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
@@ -22,11 +31,21 @@ const { Title, Text, Paragraph } = Typography;
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, updateUser } = useAuth();
   const [profileUser, setProfileUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [friendship, setFriendship] = useState(null);
+  const [friends, setFriends] = useState([]);
+  const [friendsLoading, setFriendsLoading] = useState(false);
+
+  // Cover Image State
+  const [isRepositioning, setIsRepositioning] = useState(false);
+  const [coverPosition, setCoverPosition] = useState(0);
+  const [tempCoverPosition, setTempCoverPosition] = useState(0);
+  const dragStartY = React.useRef(0);
+  const dragStartPos = React.useRef(0);
 
   // Edit Profile State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
@@ -44,12 +63,16 @@ const Profile = () => {
   };
 
   // Determine which user ID to fetch
-  const targetUserId = userId || currentUser?.id;
-  const isOwnProfile = !userId || parseInt(userId) === currentUser?.id;
+  const validUserId = userId && userId !== 'undefined' && userId !== 'null' ? userId : null;
+  const targetUserId = validUserId || currentUser?.id;
+  const isOwnProfile = !validUserId || parseInt(validUserId) === currentUser?.id;
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!targetUserId) return;
+      if (!targetUserId) {
+          setLoading(false);
+          return;
+      }
       setLoading(true);
       try {
         // If it's own profile, we can use /users/me, but /users/:id works for both if we have the ID
@@ -59,11 +82,14 @@ const Profile = () => {
         if (isOwnProfile) {
              res = await axiosClient.get('/users/me');
              // res.user and res.profile
-             setProfileUser({ ...res.user, ...res.profile });
+             setProfileUser({ ...res.user, ...res.profile, friendCount: res.friendCount });
+             setCoverPosition(res.profile.cover_position || 0);
         } else {
              res = await axiosClient.get(`/users/${targetUserId}`);
              // res.profile and res.user (added in backend)
-             setProfileUser({ ...res.user, ...res.profile });
+             setProfileUser({ ...res.user, ...res.profile, friendCount: res.friendCount });
+             setCoverPosition(res.profile.cover_position || 0);
+             setFriendship(res.friendship);
         }
       } catch (error) {
         console.error("Failed to fetch profile", error);
@@ -94,6 +120,22 @@ const Profile = () => {
     fetchPosts();
   }, [targetUserId]);
 
+  useEffect(() => {
+      const fetchFriends = async () => {
+          if (!targetUserId) return;
+          setFriendsLoading(true);
+          try {
+              const res = await axiosClient.get(`/friendships/list?userId=${targetUserId}`);
+              setFriends(res.friends || []);
+          } catch (error) {
+              console.error("Failed to fetch friends", error);
+          } finally {
+              setFriendsLoading(false);
+          }
+      };
+      fetchFriends();
+  }, [targetUserId]);
+
   const handleMessage = async () => {
     try {
       const res = await axiosClient.post('/chat/private', { userId: targetUserId });
@@ -102,6 +144,77 @@ const Profile = () => {
       console.error("Failed to start conversation", error);
       message.error("Failed to start conversation");
     }
+  };
+
+  const handleFriendAction = async (action) => {
+    try {
+        if (action === 'add') {
+            const res = await axiosClient.post('/friendships/send', { friend_id: targetUserId });
+            setFriendship(res.friendship);
+            message.success('Friend request sent');
+        } else if (action === 'cancel') {
+             // Cancel sent request
+             // We need requestId. If we just sent it, we have it in friendship.id
+             if (!friendship) return;
+             await axiosClient.post('/friendships/respond', { requestId: friendship.id, action: 'cancel' });
+             setFriendship(null);
+             message.success('Request cancelled');
+        } else if (action === 'accept') {
+            if (!friendship) return;
+            await axiosClient.post('/friendships/respond', { requestId: friendship.id, action: 'accept' });
+            setFriendship({ ...friendship, status: 'accepted' });
+            setProfileUser(prev => ({ ...prev, friendCount: (prev.friendCount || 0) + 1 }));
+            message.success('Friend request accepted');
+        } else if (action === 'reject') {
+            if (!friendship) return;
+            await axiosClient.post('/friendships/respond', { requestId: friendship.id, action: 'reject' });
+            setFriendship(null);
+            message.success('Friend request rejected');
+        } else if (action === 'unfriend') {
+            if (!friendship) return;
+            await axiosClient.post('/friendships/respond', { requestId: friendship.id, action: 'unfriend' });
+            setFriendship(null);
+            setProfileUser(prev => ({ ...prev, friendCount: Math.max(0, (prev.friendCount || 0) - 1) }));
+            message.success('Unfriended successfully');
+        }
+    } catch (error) {
+        console.error("Friend action failed", error);
+        message.error(error.response?.data?.message || "Action failed");
+    }
+  };
+
+  const renderFriendButton = () => {
+      if (!friendship) {
+          return <Button type="primary" icon={<UserAddOutlined />} onClick={() => handleFriendAction('add')}>Add Friend</Button>;
+      }
+      
+      if (friendship.status === 'accepted') {
+          return (
+            <Button danger icon={<UserDeleteOutlined />} onClick={() => {
+                Modal.confirm({
+                    title: 'Unfriend',
+                    content: 'Are you sure you want to unfriend this user?',
+                    onOk: () => handleFriendAction('unfriend')
+                });
+            }}>Unfriend</Button>
+          );
+      }
+
+      if (friendship.status === 'pending') {
+          // Check if I am the sender or receiver
+          if (friendship.user_id === currentUser.id) {
+              return <Button onClick={() => handleFriendAction('cancel')}>Cancel Request</Button>;
+          } else {
+              return (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                      <Button type="primary" icon={<CheckOutlined />} onClick={() => handleFriendAction('accept')}>Accept</Button>
+                      <Button danger icon={<CloseOutlined />} onClick={() => handleFriendAction('reject')}>Reject</Button>
+                  </div>
+              );
+          }
+      }
+
+      return null;
   };
 
   const handleDeletePost = (postId) => {
@@ -126,6 +239,10 @@ const Profile = () => {
       const res = await axiosClient.put('/users/me', updatedData);
       setProfileUser({ ...profileUser, ...res.profile });
       
+      if (isOwnProfile) {
+          updateUser({ Profile: res.profile });
+      }
+
       setIsEditModalVisible(false);
       message.success('Profile updated successfully');
     } catch (error) {
@@ -171,6 +288,10 @@ const Profile = () => {
         avatar_thumbnail_url: res.profile.avatar_thumbnail_url 
       });
 
+      if (isOwnProfile) {
+          updateUser({ Profile: res.profile });
+      }
+
       setIsAvatarModalVisible(false);
       setSelectedFiles({ thumbnail: null, model: null });
       message.success('Avatar updated successfully');
@@ -206,6 +327,48 @@ const Profile = () => {
         return updated;
       });
     }
+  };
+
+  const handleCoverUpload = async (file) => {
+      const formData = new FormData();
+      formData.append('image', file);
+      try {
+          const res = await axiosClient.post('/users/cover', formData, {
+              headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          setProfileUser(prev => ({ ...prev, cover_url: res.image_url }));
+          setCoverPosition(0); // Reset position on new upload
+          message.success('Cover updated');
+      } catch (error) {
+          message.error('Failed to upload cover');
+      }
+      return false; // Prevent default upload behavior
+  };
+
+  const handleMouseDown = (e) => {
+      if (!isRepositioning) return;
+      e.preventDefault(); // Prevent image drag behavior
+      dragStartY.current = e.clientY;
+      dragStartPos.current = tempCoverPosition;
+  };
+
+  const handleMouseMove = (e) => {
+      if (!isRepositioning || e.buttons !== 1) return;
+      const deltaY = e.clientY - dragStartY.current;
+      // Sensitivity factor: 0.5
+      const newPos = Math.max(0, Math.min(100, dragStartPos.current - (deltaY * 0.5)));
+      setTempCoverPosition(newPos);
+  };
+
+  const handleSavePosition = async () => {
+      try {
+          await axiosClient.put('/users/me', { cover_position: tempCoverPosition });
+          setCoverPosition(tempCoverPosition);
+          setIsRepositioning(false);
+          message.success('Cover position saved');
+      } catch (error) {
+          message.error('Failed to save position');
+      }
   };
 
   if (loading) {
@@ -264,8 +427,34 @@ const Profile = () => {
     },
     {
       key: '3',
-      label: <span style={{ padding: '0 20px' }}>Likes</span>,
-      children: <div style={{ padding: '20px', textAlign: 'center' }}>Liked posts coming soon</div>,
+      label: <span style={{ padding: '0 20px' }}>Friends</span>,
+      children: (
+          <div style={{ padding: '20px' }}>
+              {friendsLoading ? <Spin /> : friends.length > 0 ? (
+                  <Row gutter={[16, 16]}>
+                      {friends.map(friend => (
+                          <Col xs={24} sm={12} md={8} key={friend.friend_id}>
+                              <Card 
+                                  hoverable 
+                                  bodyStyle={{ padding: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}
+                                  onClick={() => navigate(`/profile/${friend.friend_id}`)}
+                              >
+                                  <Avatar size={50} src={friend.avatar_thumbnail || friend.avatar} icon={<UserOutlined />} />
+                                  <div style={{ overflow: 'hidden' }}>
+                                      <Text strong style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {friend.name}
+                                      </Text>
+                                      <Text type="secondary" style={{ fontSize: '12px' }}>@{friend.username}</Text>
+                                  </div>
+                              </Card>
+                          </Col>
+                      ))}
+                  </Row>
+              ) : (
+                  <div style={{ textAlign: 'center', padding: '40px', color: '#999' }}>No friends yet</div>
+              )}
+          </div>
+      ),
     },
   ];
 
@@ -277,12 +466,73 @@ const Profile = () => {
         bodyStyle={{ padding: 0 }}
       >
         {/* Cover Image */}
-        <div style={{ height: '200px', background: '#f0f2f5', position: 'relative' }}>
+        <div 
+            style={{ 
+                height: '250px', 
+                background: '#f0f2f5', 
+                position: 'relative',
+                overflow: 'hidden',
+                cursor: isRepositioning ? 'move' : 'default'
+            }}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={() => {}}
+            onMouseLeave={() => {}}
+        >
           <img 
             src={profileUser.cover_url || "https://images.unsplash.com/photo-1506744038136-46273834b3fb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"} 
             alt="Cover" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ 
+                width: '100%', 
+                height: '100%', 
+                objectFit: 'cover',
+                objectPosition: `center ${isRepositioning ? tempCoverPosition : coverPosition}%`,
+                transition: isRepositioning ? 'none' : 'object-position 0.3s ease',
+                userSelect: 'none'
+            }}
+            draggable={false}
           />
+
+          {isOwnProfile && !isRepositioning && (
+              <div style={{ position: 'absolute', bottom: '10px', right: '10px', zIndex: 10, display: 'flex', gap: '8px' }}>
+                  <Upload 
+                      showUploadList={false}
+                      beforeUpload={handleCoverUpload}
+                      accept="image/*"
+                  >
+                      <Button icon={<CameraOutlined />}>Edit Cover</Button>
+                  </Upload>
+                  <Button 
+                      icon={<DragOutlined />} 
+                      onClick={() => {
+                          setIsRepositioning(true);
+                          setTempCoverPosition(coverPosition);
+                      }}
+                  >
+                      Reposition
+                  </Button>
+              </div>
+          )}
+
+          {isRepositioning && (
+              <div style={{ 
+                  position: 'absolute', 
+                  top: 0, left: 0, right: 0, 
+                  background: 'rgba(0,0,0,0.5)', 
+                  padding: '10px', 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center',
+                  color: 'white',
+                  zIndex: 20
+              }}>
+                  <span><DragOutlined /> Drag to reposition</span>
+                  <div>
+                      <Button type="primary" onClick={handleSavePosition} style={{ marginRight: '8px' }} icon={<SaveOutlined />}>Save</Button>
+                      <Button onClick={() => setIsRepositioning(false)} icon={<CloseOutlined />}>Cancel</Button>
+                  </div>
+              </div>
+          )}
         </div>
 
         <div style={{ padding: '0 24px 24px 24px', position: 'relative' }}>
@@ -321,7 +571,7 @@ const Profile = () => {
                 <Button icon={<EditOutlined />} onClick={handleEditProfile}>Edit Profile</Button>
             ) : (
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    <Button type="primary" style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' }}>Follow</Button>
+                    {renderFriendButton()}
                     <Button icon={<MessageOutlined />} onClick={handleMessage}>Message</Button>
                 </div>
             )}
@@ -337,8 +587,7 @@ const Profile = () => {
 
           <div style={{ display: 'flex', gap: '24px' }}>
             <Text strong>{posts.length} <Text type="secondary" style={{ fontWeight: 'normal' }}>Posts</Text></Text>
-            <Text strong>0 <Text type="secondary" style={{ fontWeight: 'normal' }}>Followers</Text></Text>
-            <Text strong>0 <Text type="secondary" style={{ fontWeight: 'normal' }}>Following</Text></Text>
+            <Text strong>{profileUser.friendCount || 0} <Text type="secondary" style={{ fontWeight: 'normal' }}>Friends</Text></Text>
           </div>
         </div>
       </Card>

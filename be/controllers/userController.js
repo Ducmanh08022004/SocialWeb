@@ -5,26 +5,69 @@ const fs = require('fs');
 const { Op } = require('sequelize');
 
 const getMyProfile = async (req, res) => {
-  const user = req.user;
-  const profile = await Profile.findOne({ where: { user_id: user.id } });
-  res.json({ user: { id: user.id, username: user.username, email: user.email, status: user.status }, profile });
+  try {
+    const user = req.user;
+    console.log('[getMyProfile] User:', user.id);
+    const profile = await Profile.findOne({ where: { user_id: user.id } });
+    
+    const friendCount = await Friendship.count({
+      where: {
+        user_id: user.id,
+        status: 'accepted'
+      }
+    });
+
+    res.json({ 
+      user: { id: user.id, username: user.username, email: user.email, status: user.status }, 
+      profile,
+      friendCount
+    });
+  } catch (err) {
+    console.error('[getMyProfile] Error:', err);
+    res.status(500).json({ message: 'Lỗi lấy thông tin cá nhân', error: err.message });
+  }
 };
 
 const getProfileById = async (req, res) => {
   try {
     const userId = req.params.userId;
+    const currentUserId = req.user.id;
+    console.log(`[getProfileById] Target: ${userId}, Current: ${currentUserId}`);
+
     const profile = await Profile.findOne({ 
       where: { user_id: userId },
       include: [{ model: User, attributes: ['id', 'username', 'email', 'status'] }]
     });
     if (!profile) {
+      console.log('[getProfileById] Profile not found');
       return res.status(404).json({ message: 'Không tìm thấy người dùng' });
     }
+    
+    const friendCount = await Friendship.count({
+      where: {
+        user_id: userId,
+        status: 'accepted'
+      }
+    });
+
+    let friendship = null;
+    if (currentUserId && currentUserId != userId) {
+        friendship = await Friendship.findOne({
+            where: {
+                [Op.or]: [
+                    { user_id: currentUserId, friend_id: userId },
+                    { user_id: userId, friend_id: currentUserId }
+                ]
+            }
+        });
+    }
+
     // Flatten the structure slightly for the frontend or just return as is
     // The frontend expects profile fields at top level or inside profile object
     // Let's return { profile, user: profile.User }
-    res.json({ profile, user: profile.User });
+    res.json({ profile, user: profile.User, friendCount, friendship });
   } catch (err) {
+    console.error('[getProfileById] Error:', err);
     res.status(500).json({ message: 'Lỗi lấy thông tin', error: err.message });
   }
 };
@@ -303,12 +346,14 @@ const updateCover = async (req, res) => {
         user_id: userId,
         cover_url: coverUrl,
         cover_public_id: publicId,
+        cover_position: 0,
         updated_at: new Date()
       });
     } else {
       await profile.update({
         cover_url: coverUrl,
         cover_public_id: publicId,
+        cover_position: 0,
         updated_at: new Date()
       });
     }
@@ -354,7 +399,7 @@ const searchUsers = async (req, res) => {
 
     console.log(`[SEARCH DEBUG] Found ${users.length} users`);
 
-    // Add friendship status
+    // Add friendship status and friend count
     const results = await Promise.all(users.map(async (user) => {
       const friendship = await Friendship.findOne({
         where: {
@@ -364,9 +409,17 @@ const searchUsers = async (req, res) => {
           ]
         }
       });
+
+      const friendCount = await Friendship.count({
+        where: {
+          user_id: user.id,
+          status: 'accepted'
+        }
+      });
       
       const userJson = user.toJSON();
       userJson.friendship = friendship ? { status: friendship.status } : null;
+      userJson.friendCount = friendCount;
       return userJson;
     }));
 

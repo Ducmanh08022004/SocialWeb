@@ -140,10 +140,10 @@ const MainLayout = ({ children }) => {
             borderTop: '1px solid #f0f0f0',
             cursor: 'pointer'
           }}>
-            <Avatar src={user?.avatar_url} icon={<UserOutlined />} size="large" />
+            <Avatar src={user?.Profile?.avatar_thumbnail_url || user?.Profile?.avatar_url || user?.avatar_url} icon={<UserOutlined />} size="large" />
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <Text strong style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.username || 'User'}
+                {user?.Profile?.fullname || user?.username || 'User'}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>@{user?.username}</Text>
             </div>
