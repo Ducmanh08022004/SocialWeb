@@ -237,19 +237,70 @@ const PORT = process.env.PORT || 3000;
       const QueryInterface = sequelize.getQueryInterface();
       const { DataTypes } = require('sequelize');
       
-      // Check if updated_at column exists in conversations table
-      const table = await QueryInterface.describeTable('conversations');
-      if (!table.updated_at) {
-        console.log('Adding updated_at column to conversations...');
+      // Fix conversations table - Add updated_at if missing
+      console.log('Checking conversations table...');
+      const conversationsTable = await QueryInterface.describeTable('conversations');
+      if (!conversationsTable.updated_at) {
+        console.log('  Adding updated_at column to conversations...');
         await QueryInterface.addColumn('conversations', 'updated_at', {
           type: DataTypes.DATE,
           defaultValue: DataTypes.NOW,
           allowNull: true
         });
-        console.log('✅ Added updated_at column');
+        console.log('  ✅ Added updated_at column');
+      } else {
+        console.log('  ✅ updated_at column exists');
       }
+
+      // Fix profiles table - Add missing columns
+      console.log('Checking profiles table...');
+      const profilesTable = await QueryInterface.describeTable('profiles');
+      
+      const profileColumnsToAdd = [
+        { name: 'avatar_type', type: DataTypes.ENUM('image', 'model3d'), default: 'image' },
+        { name: 'avatar_public_id', type: DataTypes.STRING(255), default: null },
+        { name: 'cover_url', type: DataTypes.STRING(255), default: null },
+        { name: 'cover_public_id', type: DataTypes.STRING(255), default: null },
+        { name: 'birthday', type: DataTypes.DATEONLY, default: null },
+        { name: 'gender', type: DataTypes.ENUM('male', 'female', 'other'), default: null },
+        { name: 'updated_at', type: DataTypes.DATE, default: null }
+      ];
+
+      for (const col of profileColumnsToAdd) {
+        if (!profilesTable[col.name]) {
+          console.log(`  Adding ${col.name} column...`);
+          await QueryInterface.addColumn('profiles', col.name, {
+            type: col.type,
+            allowNull: true
+          });
+          console.log(`  ✅ Added ${col.name}`);
+        }
+      }
+      console.log('✅ Profile table is up to date');
+
+      // Fix post_media table - Ensure type ENUM includes all values
+      console.log('Checking post_media table...');
+      const postMediaTable = await QueryInterface.describeTable('post_media');
+      
+      // Check if type column exists and has correct ENUM values
+      if (postMediaTable.type) {
+        const typeInfo = postMediaTable.type;
+        // If type column exists but doesn't include 'model3d', we need to fix it
+        if (typeInfo.type && !typeInfo.type.includes('model3d')) {
+          console.log('  Updating type ENUM to include model3d...');
+          await QueryInterface.changeColumn('post_media', 'type', {
+            type: DataTypes.ENUM('image', 'video', 'model3d'),
+            allowNull: true
+          });
+          console.log('  ✅ Updated type ENUM');
+        } else {
+          console.log('  ✅ type ENUM is correct');
+        }
+      }
+      console.log('✅ Post_media table is up to date');
+
     } catch (migrationErr) {
-      console.log('Migration note:', migrationErr.message);
+      console.log('⚠️ Migration note:', migrationErr.message);
     }
 
     server.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));

@@ -41,7 +41,7 @@ const checkFileSize = (req, res, next) => {
   const files = req.files || [];
   for (const file of files) {
     if (file._isImage && file.size > 10 * 1024 * 1024)
-      return res.status(400).json({ message: `Ảnh ${file.originalname} quá lớn (max 5MB)` });
+      return res.status(400).json({ message: `Ảnh ${file.originalname} quá lớn (max 10MB)` });
     if (file._isVideo && file.size > 50 * 1024 * 1024)
       return res.status(400).json({ message: `Video ${file.originalname} quá lớn (max 50MB)` });
     if (file._is3D && file.size > 10 * 1024 * 1024)

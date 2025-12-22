@@ -14,6 +14,7 @@ import {
 import { Link } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 import { useAuth } from '../context/AuthContext';
+import Model3DViewer from './Model3DViewer';
 
 const { Text, Paragraph } = Typography;
 const { TextArea } = Input;
@@ -39,6 +40,10 @@ const PostItem = ({ post, onDelete }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [postContent, setPostContent] = useState(post.content);
+
+  // 3D Model viewer state
+  const [model3DVisible, setModel3DVisible] = useState(false);
+  const [selectedModel, setSelectedModel] = useState(null);
 
   // Check if current user liked the post
   useEffect(() => {
@@ -181,7 +186,7 @@ const PostItem = ({ post, onDelete }) => {
   return (
     <Card 
       style={{ marginBottom: '24px', borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)', border: 'none' }}
-      bodyStyle={{ padding: '20px' }}
+      styles={{ body: { padding: '20px' } }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
         <div style={{ display: 'flex' }}>
@@ -238,14 +243,35 @@ const PostItem = ({ post, onDelete }) => {
                     src={media.media_url} 
                     style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block' }} 
                 />
-             ) : (
+             ) : media.type === 'video' ? (
                 <video 
                     key={media.id}
                     src={media.media_url} 
                     controls 
                     style={{ width: '100%', maxHeight: '500px', display: 'block' }} 
                 />
-             )
+             ) : media.type === 'model3d' ? (
+                <div
+                    key={media.id}
+                    style={{
+                      width: '100%',
+                      height: '400px',
+                      background: '#f5f5f5',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      console.log('🎬 3D Model button clicked:', media);
+                      setSelectedModel(media);
+                      setModel3DVisible(true);
+                    }}
+                >
+                  <Button type="primary">View 3D Model</Button>
+                </div>
+             ) : null
           ))}
         </div>
       )}
@@ -322,6 +348,14 @@ const PostItem = ({ post, onDelete }) => {
           )}
         </div>
       )}
+
+      {/* 3D Model Viewer Modal */}
+      <Model3DViewer
+        visible={model3DVisible}
+        onCancel={() => setModel3DVisible(false)}
+        modelUrl={selectedModel?.media_url}
+        modelName="3D Model"
+      />
     </Card>
   );
 };

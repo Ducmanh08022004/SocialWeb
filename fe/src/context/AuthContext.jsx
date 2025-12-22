@@ -36,17 +36,21 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
+      console.log('🔐 Logging in with:', email);
       // Backend expects 'usernameOrEmail', so we map 'email' to it
       const res = await axiosClient.post('/auth/login', { usernameOrEmail: email, password });
       // Expecting res to contain token and user
-      const { token, user } = res; 
+      const { token, user } = res;
+      console.log('✅ Login successful:', email);
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
       return { success: true };
     } catch (error) {
-      console.error("Login error", error);
-      return { success: false, message: error.response?.data?.message || 'Login failed' };
+      console.error("Login error:", error);
+      console.error("Error response:", error.response?.data);
+      const message = error.response?.data?.message || error.response?.data?.error || error.message || 'Login failed';
+      return { success: false, message };
     }
   };
 

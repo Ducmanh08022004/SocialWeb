@@ -81,7 +81,14 @@ const createPost = async (req, res) => {
 
     // 4️⃣ Lưu media
     if (uploads.length) {
-      await PostMedia.bulkCreate(uploads);
+      console.log('📤 Saving media:', uploads.length, 'items');
+      try {
+        await PostMedia.bulkCreate(uploads);
+        console.log('✅ Media saved successfully');
+      } catch (mediaErr) {
+        console.error('❌ Media save error:', mediaErr.message);
+        throw mediaErr;
+      }
     }
 
     const media = await PostMedia.findAll({

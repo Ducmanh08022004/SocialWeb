@@ -7,11 +7,15 @@ const { Op } = require('sequelize');
 
 const register = async (req, res) => {
   try {
+    console.log('📝 REGISTER ATTEMPT:', req.body.username);
     const { username, password, email, fullname } = req.body;
     if (!username || !password || !email) return res.status(400).json({ message: 'Thiếu thông tin' });
 
     const exists = await User.findOne({ where: { [Op.or]: [{ username }, { email }] } });
-    if (exists) return res.status(409).json({ message: 'Username hoặc email đã tồn tại' });
+    if (exists) {
+      console.log('❌ User already exists:', username);
+      return res.status(409).json({ message: 'Username hoặc email đã tồn tại' });
+    }
 
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ username, password: hash, email });
@@ -20,14 +24,17 @@ const register = async (req, res) => {
       await Profile.create({ user_id: user.id, fullname, avatar_url: 'social_network/publicAsset/default_avatar.png' });
     }
 
+    console.log('✅ REGISTER SUCCESS:', username);
     res.json({user: { id: user.id, username: user.username, email: user.email } });
   } catch (err) {
+    console.error('❌ REGISTER ERROR:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
 
 const login = async (req, res) => {
   try {
+    console.log('🔐 LOGIN ATTEMPT:', req.body.usernameOrEmail);
     const { usernameOrEmail, password } = req.body;
     if (!usernameOrEmail || !password) return res.status(400).json({ message: 'Thiếu thông tin' });
 
@@ -35,14 +42,35 @@ const login = async (req, res) => {
       where: { [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }] },
       include: { model: Profile }
     });
-    if (!user) return res.status(401).json({ message: 'Sai thông tin đăng nhập' });
+    if (!user) {
+      console.log('❌ User not found:', usernameOrEmail);
+      return res.status(401).json({ message: 'Sai thông tin đăng nhập' });
+    }
+
+    console.log('✅ User found:', user.username);
 
     const ok = await bcrypt.compare(password, user.password);
-    if (!ok) return res.status(401).json({ message: 'Sai thông tin đăng nhập' });
+    if (!ok) {
+      console.log('❌ Password incorrect');
+      return res.status(401).json({ message: 'Sai thông tin đăng nhập' });
+    }
+
+    console.log('✅ Password correct');
 
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
-    res.json({ token, user });
+    
+    // Return user without password
+    const userResponse = {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      Profile: user.Profile
+    };
+    
+    console.log('✅ LOGIN SUCCESS:', user.username);
+    res.json({ token, user: userResponse });
   } catch (err) {
+    console.error('❌ LOGIN ERROR:', err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
