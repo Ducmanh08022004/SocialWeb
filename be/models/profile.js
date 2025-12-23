@@ -16,6 +16,7 @@ class Profile extends Model {
       avatar_thumbnail_public_id: { type: DataTypes.STRING(255) },
       cover_url: { type: DataTypes.STRING(255) },
       cover_public_id: { type: DataTypes.STRING(255) },
+      cover_position: { type: DataTypes.INTEGER, defaultValue: 0 },
       birthday: { type: DataTypes.DATEONLY },
       gender: { type: DataTypes.ENUM('male','female','other') },
       updated_at: { type: DataTypes.DATE }

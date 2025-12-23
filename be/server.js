@@ -19,6 +19,7 @@ const commentRoutes = require('./routes/comments');
 const notificationRoutes = require('./routes/notifications');
 const chatRoutes = require('./routes/chat');
 const aiRoutes = require('./routes/ai');
+const storyRoutes = require('./routes/stories');
 
 
 const app = express();
@@ -42,6 +43,7 @@ app.use('/api/likes', likeRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/stories', storyRoutes);
 
 app.get('/', (req, res) => res.send('Social API running'));
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
@@ -298,6 +300,12 @@ const PORT = process.env.PORT || 3000;
         }
       }
       console.log('✅ Post_media table is up to date');
+
+      // Create stories table if not exists
+      console.log('Checking stories table...');
+      const { Story } = require('./models');
+      await Story.sync();
+      console.log('✅ Stories table is ready');
 
     } catch (migrationErr) {
       console.log('⚠️ Migration note:', migrationErr.message);
