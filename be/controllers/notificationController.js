@@ -9,11 +9,11 @@ const listNotifications = async (req, res) => {
       { 
         model: User, 
         as: 'sender', 
-        attributes: ['id'],
+        attributes: ['id', 'username'],
         include: [
           { 
             model: Profile, 
-            attributes: ['fullname', 'avatar_url']
+            attributes: ['fullname', 'avatar_url', 'avatar_thumbnail_url']
           }
         ]
       }

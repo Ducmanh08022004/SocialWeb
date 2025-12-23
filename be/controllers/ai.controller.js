@@ -8,26 +8,41 @@ const { Op } = require('sequelize');
  */
 exports.suggestCaption = async (req, res) => {
   try {
-    const { tone, topic } = req.body;
+    const { tone } = req.body;
 
-    let prompt = `
-Bạn là trợ lý mạng xã hội.
-Hãy viết MỘT caption ngắn gọn, tự nhiên, bằng tiếng Việt.
-Phong cách (tone): ${tone || 'tự nhiên'}.
-`;
-    if (topic) {
-      prompt += `Nội dung chính: ${topic}\n`;
+    if (!tone) {
+      return res.status(400).json({ message: 'Vui lòng chọn phong cách (tone)' });
     }
-    prompt += `Không dùng emoji quá nhiều.`;
+
+    const prompt = `Bạn là trợ lý mạng xã hội chuyên viết caption cho bài viết.
+Hãy viết MỘT caption ngắn gọn, tự nhiên, hấp dẫn bằng tiếng Việt.
+Phong cách: ${tone}
+Yêu cầu:
+- Ngắn gọn, không quá dài
+- Tự nhiên, không sáo
+- Không quá nhiều emoji
+- Phù hợp với phong cách đã nêu`;
 
     const result = await gemini.generateContent(prompt);
+    const caption = result.response.text().trim();
 
     res.json({
-      caption: result.response.text().trim()
+      caption
     });
   } catch (err) {
+    console.error('[AI Caption ERROR]', err.message);
+    
+    let errorMessage = 'Lỗi gợi ý caption';
+    if (err.status === 403) {
+      errorMessage = 'API key Gemini bị lỗi. Vui lòng kiểm tra lại.';
+    } else if (err.status === 401) {
+      errorMessage = 'API key Gemini không hợp lệ.';
+    } else if (err.status === 429) {
+      errorMessage = 'Quá nhiều yêu cầu. Vui lòng thử lại sau.';
+    }
+    
     res.status(500).json({
-      message: 'Lỗi gợi ý caption',
+      message: errorMessage,
       error: err.message
     });
   }

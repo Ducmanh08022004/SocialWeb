@@ -8,6 +8,7 @@ const likePost = async (req, res) => {
     if (!post_id) return res.status(400).json({ message: 'Thiếu post_id' });
 
     // Lấy post để tìm owner
+    //jvvhjhbjhbhbhjh
     const post = await Post.findByPk(post_id);
     if (!post) return res.status(404).json({ message: 'Không tìm thấy bài viết' });
 

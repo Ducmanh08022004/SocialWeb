@@ -158,7 +158,7 @@ exports.getConversations = async (req, res) => {
                 attributes: ['id', 'username'],
                 include: [{
                   model: require('../models').Profile,
-                  attributes: ['avatar_url', 'fullname']
+                  attributes: ['avatar_url', 'avatar_thumbnail_url', 'fullname']
                 }]
               }
             ]
@@ -175,6 +175,7 @@ exports.getConversations = async (req, res) => {
           let name = conv.name;
           let otherUserId = null;
           let otherUserAvatar = null;
+          let otherUserAvatarThumbnail = null;
 
           if (conv.type === 'private') {
             const otherMember = members.find(m => m.user_id !== myId);
@@ -182,6 +183,7 @@ exports.getConversations = async (req, res) => {
               otherUserId = otherMember.user_id;
               name = otherMember.User.Profile?.fullname || otherMember.User.username || `User ${otherUserId}`;
               otherUserAvatar = otherMember.User.Profile?.avatar_url || null;
+              otherUserAvatarThumbnail = otherMember.User.Profile?.avatar_thumbnail_url || null;
             }
           }
 
@@ -191,6 +193,7 @@ exports.getConversations = async (req, res) => {
             name,
             otherUserId,
             otherUserAvatar,
+            otherUserAvatarThumbnail,
             lastMessage: lastMessage ? {
               id: lastMessage.id,
               content: lastMessage.content,

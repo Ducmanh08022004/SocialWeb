@@ -12,6 +12,7 @@ const Conversation = require('./conversation');
 const ConversationMember = require('./conversationMember');
 const Message = require('./message');
 const MessageReceipt = require('./messageReceipt');
+const Story = require('./story');
 
 User.initModel(sequelize);
 Profile.initModel(sequelize);
@@ -25,10 +26,14 @@ Conversation.initModel(sequelize);
 ConversationMember.initModel(sequelize);
 Message.initModel(sequelize);
 MessageReceipt.initModel(sequelize);
+Story.initModel(sequelize);
 
 // Associations
 User.hasOne(Profile, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 Profile.belongsTo(User, { foreignKey: 'user_id' });
+
+User.hasMany(Story, { foreignKey: 'user_id', onDelete: 'CASCADE' });
+Story.belongsTo(User, { foreignKey: 'user_id' });
 
 User.hasMany(Post, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 Post.belongsTo(User, { foreignKey: 'user_id' });
@@ -108,5 +113,6 @@ module.exports = {
   Conversation,
   ConversationMember,
   Message,
-  MessageReceipt
+  MessageReceipt,
+  Story
 };

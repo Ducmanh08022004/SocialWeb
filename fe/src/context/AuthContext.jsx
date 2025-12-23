@@ -70,12 +70,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
+  const updateUser = (userData) => {
+    setUser(prev => ({ ...prev, ...userData }));
+    // Also update localStorage if needed, but be careful with structure
+    // Ideally we should fetch fresh data or ensure structure matches
+  };
+
   const value = {
     user,
     loading,
     login,
     register,
-    logout
+    logout,
+    updateUser
   };
 
   return (

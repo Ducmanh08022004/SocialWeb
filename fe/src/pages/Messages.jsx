@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty, Tooltip } from 'antd';
+import { Layout, List, Avatar, Typography, Input, Button, Badge, Spin, Empty, Tooltip, message } from 'antd';
 import { SendOutlined, UserOutlined, InfoCircleOutlined, BulbOutlined } from '@ant-design/icons';
 import { io } from 'socket.io-client';
 import { useLocation } from 'react-router-dom';
@@ -119,14 +119,42 @@ const Messages = () => {
 
   // Handle auto-open conversation from navigation state
   useEffect(() => {
-    if (location.state?.conversationId && conversations.length > 0 && !activeConversation) {
-      const targetConv = conversations.find(c => c.id === location.state.conversationId);
-      if (targetConv) {
-        setActiveConversation(targetConv);
-        // Clear state so it doesn't keep resetting
-        window.history.replaceState({}, document.title);
-      }
-    }
+    const handleNavigation = async () => {
+        if (location.state?.targetUserId && !activeConversation) {
+             try {
+                const res = await axiosClient.post('/chat/private', { userId: location.state.targetUserId });
+                const conversation = res.conversation;
+                
+                if (conversation) {
+                    let targetConv = conversations.find(c => c.id === conversation.id);
+                    
+                    if (!targetConv) {
+                        // If conversation exists but not in current list (e.g. new), refresh list
+                        const listRes = await axiosClient.get('/chat/conversations');
+                        const newConversations = listRes.data || [];
+                        setConversations(newConversations);
+                        targetConv = newConversations.find(c => c.id === conversation.id);
+                    }
+                    
+                    if (targetConv) {
+                        setActiveConversation(targetConv);
+                    }
+                    window.history.replaceState({}, document.title);
+                }
+             } catch (error) {
+                 console.error("Failed to start conversation", error);
+                 message.error("Failed to start conversation");
+             }
+        } else if (location.state?.conversationId && conversations.length > 0 && !activeConversation) {
+            const targetConv = conversations.find(c => c.id === location.state.conversationId);
+            if (targetConv) {
+                setActiveConversation(targetConv);
+                window.history.replaceState({}, document.title);
+            }
+        }
+    };
+    
+    handleNavigation();
   }, [conversations, location.state, activeConversation]);
 
   // Join room when active conversation changes
@@ -227,7 +255,7 @@ const Messages = () => {
                 <List.Item.Meta
                   avatar={
                     <Badge count={item.unreadCount} size="small">
-                        <Avatar src={item.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
+                        <Avatar src={item.otherUserAvatarThumbnail || item.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
                     </Badge>
                   }
                   title={<Text strong>{item.name}</Text>}
@@ -254,10 +282,10 @@ const Messages = () => {
             {/* Chat Header */}
             <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Avatar src={activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} />
+                <Avatar src={activeConversation.otherUserAvatarThumbnail || activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} />
                 <Title level={5} style={{ margin: 0 }}>{activeConversation.name}</Title>
               </div>
-              <Button icon={<InfoCircleOutlined />} type="text" />
+        
             </div>
 
             {/* Messages Area */}
@@ -275,7 +303,7 @@ const Messages = () => {
                   >
                     {!isMyMessage && (
                         <Avatar 
-                            src={activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                            src={activeConversation.otherUserAvatarThumbnail || activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                             size={32} 
                             style={{ marginRight: '8px', marginTop: '4px' }} 
                         />
@@ -306,15 +334,6 @@ const Messages = () => {
             {/* Input Area */}
             <div style={{ padding: '16px', background: '#fff', borderTop: '1px solid #f0f0f0' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                <Tooltip title="Gợi ý trả lời nhanh">
-                  <Button 
-                    icon={<BulbOutlined />} 
-                    shape="circle"
-                    onClick={handleSuggestReply}
-                    loading={aiLoading}
-                    disabled={messages.length === 0}
-                  />
-                </Tooltip>
                 <TextArea 
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}

@@ -59,17 +59,24 @@ const respondRequest = async (req, res) => {
   const f = await Friendship.findByPk(requestId);
   if (!f) return res.status(404).json({ message: 'Không tìm thấy request' });
   
-  // Đối với action 'unfriend', cả hai người đều có quyền xóa
-  if (action !== 'unfriend') {
-    // Kiểm tra xem userId có phải là người nhận lời mời không
-    if (f.friend_id !== userId) {
-      return res.status(403).json({ message: 'Không đủ quyền' });
-    }
+  // Permission checks based on action
+  if (action === 'accept' || action === 'reject' || action === 'block') {
+      // Only receiver can accept/reject/block
+      if (f.friend_id !== userId) {
+          return res.status(403).json({ message: 'Không đủ quyền' });
+      }
+  } else if (action === 'cancel') {
+      // Only sender can cancel
+      if (f.user_id !== userId) {
+          return res.status(403).json({ message: 'Không đủ quyền' });
+      }
+  } else if (action === 'unfriend') {
+      // Both can unfriend
+      if (f.user_id !== userId && f.friend_id !== userId) {
+          return res.status(403).json({ message: 'Không đủ quyền' });
+      }
   } else {
-    // Kiểm tra xem userId có phải là một trong hai người trong quan hệ bạn bè không
-    if (f.user_id !== userId && f.friend_id !== userId) {
-      return res.status(403).json({ message: 'Không đủ quyền' });
-    }
+      return res.status(400).json({ message: 'Action không hợp lệ' });
   }
 
   if (action === 'accept') {
@@ -89,6 +96,12 @@ const respondRequest = async (req, res) => {
     // Xóa lời mời kết bạn
     await f.destroy();
     res.json({ message: 'Đã từ chối' });
+  } else if (action === 'cancel') {
+    // Xóa thông báo lời mời kết bạn
+    await Notification.destroy({ where: { sender_id: userId, receiver_id: f.friend_id, type: 'friend_request' } });
+    // Xóa lời mời kết bạn
+    await f.destroy();
+    res.json({ message: 'Đã hủy lời mời' });
   } else if (action === 'unfriend') {
     // Xác định friendId là ai
     const friendId = f.user_id === userId ? f.friend_id : f.user_id;
@@ -115,18 +128,27 @@ const respondRequest = async (req, res) => {
 
 const listFriends = async (req, res) => {
   try {
-    const userId = req.user?.id || req.user?.dataValues?.id;
+    // Allow fetching friends for a specific user if userId query param is provided
+    // Otherwise default to current user
+    let targetUserId = req.user?.id || req.user?.dataValues?.id;
     
-    if (!userId) {
-      console.error('[listFriends] No userId found in req.user:', req.user);
+    if (req.query.userId && req.query.userId !== 'undefined' && req.query.userId !== 'null') {
+        const parsed = parseInt(req.query.userId);
+        if (!isNaN(parsed)) {
+            targetUserId = parsed;
+        }
+    }
+    
+    if (!targetUserId) {
+      console.error('[listFriends] No userId found. req.user:', req.user ? 'present' : 'missing', 'query:', req.query);
       return res.status(400).json({ message: 'Invalid user' });
     }
     
-    console.log(`[listFriends] Fetching friends for user ${userId}`);
+    console.log(`[listFriends] Fetching friends for user ${targetUserId}`);
     
     // Simple query: Get friendships
     const friendships = await Friendship.findAll({ 
-      where: { user_id: userId, status: 'accepted' },
+      where: { user_id: targetUserId, status: 'accepted' },
       attributes: ['friend_id']
     });
 
@@ -146,7 +168,7 @@ const listFriends = async (req, res) => {
       attributes: ['id', 'username'],
       include: [{
         model: Profile,
-        attributes: ['fullname', 'avatar_url'],
+        attributes: ['fullname', 'avatar_url', 'avatar_thumbnail_url'],
         required: false
       }]
     });
@@ -158,7 +180,8 @@ const listFriends = async (req, res) => {
       friend_id: user.id,
       username: user.username,
       name: user.Profile?.fullname || user.username,
-      avatar: user.Profile?.avatar_url || null
+      avatar: user.Profile?.avatar_url || null,
+      avatar_thumbnail_url: user.Profile?.avatar_thumbnail_url || null
     }));
 
     res.json({ friends });
@@ -182,7 +205,7 @@ const listPendingRequests = async (req, res) => {
           attributes: ['id', 'username'],
           include: [{
             model: require('../models').Profile,
-            attributes: ['fullname', 'avatar_url']
+            attributes: ['fullname', 'avatar_url', 'avatar_thumbnail_url']
           }]
         }
       ]
@@ -194,6 +217,7 @@ const listPendingRequests = async (req, res) => {
       username: req.sender.username,
       name: req.sender.Profile?.fullname || req.sender.username,
       avatar: req.sender.Profile?.avatar_url,
+      avatar_thumbnail_url: req.sender.Profile?.avatar_thumbnail_url,
       created_at: req.created_at
     }));
 

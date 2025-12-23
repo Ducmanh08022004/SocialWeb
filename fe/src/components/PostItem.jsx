@@ -290,9 +290,6 @@ const PostItem = ({ post, onDelete }) => {
         >
             <MessageOutlined style={{ fontSize: '18px' }} /> {commentCount || 0}
         </span>
-        <span style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <ShareAltOutlined style={{ fontSize: '18px' }} /> {post.shareCount || 0}
-        </span>
       </div>
 
       {/* Comments Section */}
@@ -300,7 +297,9 @@ const PostItem = ({ post, onDelete }) => {
         <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
           {/* Input */}
           <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-            <Avatar src={currentUser?.avatar_url} />
+            <Avatar 
+              src={currentUser?.Profile?.avatar_thumbnail_url || currentUser?.Profile?.avatar_url || currentUser?.avatar_url}
+            />
             <div style={{ flex: 1, display: 'flex', gap: '8px' }}>
                 <Input 
                     placeholder="Write a comment..." 
@@ -329,7 +328,11 @@ const PostItem = ({ post, onDelete }) => {
                 renderItem={(item) => (
                   <List.Item style={{ padding: '12px 0', borderBottom: 'none' }}>
                     <List.Item.Meta
-                      avatar={<Avatar src={item.User?.Profile?.avatar_url} />}
+                      avatar={
+                        <Avatar 
+                          src={item.User?.Profile?.avatar_thumbnail_url || item.User?.Profile?.avatar_url}
+                        />
+                      }
                       title={
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <Text strong style={{ fontSize: '13px' }}>{item.User?.Profile?.fullname || item.User?.username}</Text>

@@ -26,16 +26,17 @@ const CreatePost = () => {
     setAiLoading(true);
     try {
       const res = await axiosClient.post('/ai/caption', {
-        tone: aiTone,
-        topic: content || 'Một ngày tuyệt vời'
+        tone: aiTone
       });
-      if (res.data && res.data.caption) {
-        setContent(res.data.caption);
+      if (res && res.caption) {
+        setContent(res.caption);
         message.success('Caption generated!');
+      } else {
+        message.error('Invalid response from server');
       }
     } catch (error) {
       console.error('AI Caption error:', error);
-      message.error('Failed to generate caption');
+      message.error(error?.message || 'Failed to generate caption');
     } finally {
       setAiLoading(false);
     }
@@ -87,11 +88,11 @@ const CreatePost = () => {
         <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
           <Avatar 
             size={48} 
-            src={user?.avatar_url} 
+            src={user?.Profile?.avatar_thumbnail_url || user?.Profile?.avatar_url || user?.avatar_url} 
             icon={<UserOutlined />} 
           />
           <div>
-            <Title level={5} style={{ margin: 0 }}>{user?.username || 'User'}</Title>
+            <Title level={5} style={{ margin: 0 }}>{user?.Profile?.fullname || user?.username || 'User'}</Title>
             <Text type="secondary">@{user?.username}</Text>
           </div>
         </div>
@@ -170,8 +171,8 @@ const CreatePost = () => {
             onClick={handleSubmit}
             loading={loading}
             style={{ 
-              backgroundColor: '#8b5cf6', 
-              borderColor: '#8b5cf6',
+              backgroundColor: '#1890FF', 
+              borderColor: '#1890FF',
               borderRadius: '8px',
               fontWeight: 600,
               padding: '0 32px'

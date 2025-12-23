@@ -36,8 +36,8 @@ const Login = () => {
           padding: '60px'
         }}>
           <div style={{ marginBottom: '40px' }}>
-            <div style={{ color: '#8b5cf6', fontSize: '32px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              Rough 
+            <div style={{ color: '#1890FF', fontSize: '32px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              Konek 
             </div>
           </div>
           
@@ -46,18 +46,18 @@ const Login = () => {
               <Avatar src="https://api.dicebear.com/7.x/avataaars/svg?seed=1" />
               <Avatar src="https://api.dicebear.com/7.x/avataaars/svg?seed=2" />
               <Avatar src="https://api.dicebear.com/7.x/avataaars/svg?seed=3" />
-              <Avatar style={{ backgroundColor: '#f56a00' }}>+12k</Avatar>
+              <Avatar style={{ backgroundColor: '#1890FF' }}>+12k</Avatar>
             </Avatar.Group>
             <div style={{ marginTop: '10px', color: '#4b5563', fontWeight: 500 }}>Used by 12k+ developers</div>
           </div>
 
           <Title level={1} style={{ fontSize: '4rem', lineHeight: '1.1', color: '#1e1b4b', marginBottom: '20px' }}>
             More than just friends<br />
-            <span style={{ color: '#4338ca' }}>truly connect</span>
+            <span style={{ color: '#1890FF' }}>truly connect</span>
           </Title>
           
           <Text style={{ fontSize: '1.5rem', color: '#4b5563' }}>
-            Connect with global community on Rough.
+            Connect with global community on Konek.
           </Text>
         </Col>
 
@@ -70,7 +70,7 @@ const Login = () => {
         }}>
           <div style={{ width: '100%', maxWidth: '400px', padding: '24px' }}>
             <div style={{ marginBottom: '32px' }}>
-              <Title level={3}>Sign in to</Title>
+              <Title level={3} style={{fontWeight: 'bold', color: '#1e1b4b'}}>Sign in now!</Title>
               <Text type="secondary">Welcome back! Please sign in to continue</Text>
             </div>
             
@@ -108,13 +108,13 @@ const Login = () => {
                   style={{ 
                     height: '48px', 
                     borderRadius: '8px', 
-                    backgroundColor: '#374151', 
-                    borderColor: '#374151',
+                    backgroundColor: '#1890FF', 
+                    borderColor: '#1890FF',
                     fontSize: '16px',
                     fontWeight: 600
                   }}
                 >
-                  Continue ▶
+                  Continue
                 </Button>
               </Form.Item>
               

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Input, Card, Button, Avatar, Row, Col, Typography, message } from 'antd';
 import { SearchOutlined, EnvironmentOutlined, MessageOutlined, PlusOutlined, CheckOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import axiosClient from '../api/axiosClient';
 
 const { Title, Text, Paragraph } = Typography;
@@ -9,6 +10,7 @@ const Discover = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   const fetchUsers = async (query = '') => {
     setLoading(true);
@@ -80,11 +82,18 @@ const Discover = () => {
             >
               <Avatar 
                 size={80} 
-                src={user.Profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
-                style={{ marginBottom: '16px' }}
+                src={user.Profile?.avatar_thumbnail_url || user.Profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
+                style={{ marginBottom: '16px', cursor: 'pointer' }}
+                onClick={() => navigate(`/profile/${user.id}`)}
               />
               
-              <Title level={4} style={{ marginBottom: '4px' }}>{user.Profile?.fullname || user.username}</Title>
+              <Title 
+                level={4} 
+                style={{ marginBottom: '4px', cursor: 'pointer' }}
+                onClick={() => navigate(`/profile/${user.id}`)}
+              >
+                {user.Profile?.fullname || user.username}
+              </Title>
               <Text type="secondary" style={{ display: 'block', marginBottom: '12px' }}>@{user.username}</Text>
               
               <div style={{ marginBottom: '16px', fontSize: '14px', minHeight: '42px' }}>
@@ -97,10 +106,7 @@ const Discover = () => {
 
               <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginBottom: '20px' }}>
                 <div style={{ background: '#f3f4f6', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>
-                  <EnvironmentOutlined /> Earth
-                </div>
-                <div style={{ background: '#f3f4f6', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>
-                  2 Followers
+                  {user.friendCount || 0} Friends
                 </div>
               </div>
 
@@ -128,7 +134,7 @@ const Discover = () => {
                     type="primary" 
                     block 
                     icon={<PlusOutlined />}
-                    style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6', borderRadius: '6px', height: '40px' }}
+                    style={{ backgroundColor: '#1890FF', borderColor: '#1890FF', borderRadius: '6px', height: '40px' }}
                     onClick={() => handleFollow(user.id)}
                   >
                     Add Friend
@@ -138,9 +144,7 @@ const Discover = () => {
                   icon={<MessageOutlined />} 
                   style={{ borderRadius: '6px', height: '40px', width: '40px' }} 
                   onClick={() => {
-                    // Navigate to messages or profile
-                    // For now just log
-                    console.log('Message', user.id);
+                    navigate('/messages', { state: { targetUserId: user.id } });
                   }}
                 />
               </div>

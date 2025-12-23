@@ -94,8 +94,8 @@ const MainLayout = ({ children }) => {
           zIndex: 100
         }}
       >
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{ color: '#8b5cf6', fontSize: '24px', fontWeight: 'bold' }}> Rough </div>
+        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }} onClick={() => navigate('/')}>
+          <div style={{ color: '#1890FF', fontSize: '24px', fontWeight: 'bold' }}> Konek </div>
         </div>
 
         <Menu
@@ -113,8 +113,8 @@ const MainLayout = ({ children }) => {
             block 
             size="large"
             style={{ 
-              backgroundColor: '#8b5cf6', 
-              borderColor: '#8b5cf6',
+              backgroundColor: '#1890FF', 
+              borderColor: '#1890FF',
               height: '48px',
               borderRadius: '8px',
               fontWeight: 600
@@ -139,11 +139,11 @@ const MainLayout = ({ children }) => {
             padding: '12px',
             borderTop: '1px solid #f0f0f0',
             cursor: 'pointer'
-          }}>
-            <Avatar src={user?.avatar_url} icon={<UserOutlined />} size="large" />
+          }} onClick={() => navigate('/profile')}>
+            <Avatar src={user?.Profile?.avatar_thumbnail_url || user?.Profile?.avatar_url || user?.avatar_url} icon={<UserOutlined />} size="large" />
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <Text strong style={{ display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.username || 'User'}
+                {user?.Profile?.fullname || user?.username || 'User'}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>@{user?.username}</Text>
             </div>
