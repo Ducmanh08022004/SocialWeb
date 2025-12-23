@@ -118,7 +118,7 @@ const Notifications = () => {
                 <List.Item.Meta
                   avatar={
                     <div style={{ position: 'relative' }}>
-                      <Avatar src={item.sender?.Profile?.avatar_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
+                      <Avatar src={item.sender?.Profile?.avatar_thumbnail_url || item.sender?.Profile?.avatar_url || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
                       <div style={{ 
                         position: 'absolute', 
                         bottom: -4, 

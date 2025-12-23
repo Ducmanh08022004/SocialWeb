@@ -88,37 +88,6 @@ const Home = () => {
           </Text>
         </Card>
 
-        {/* Recent Messages */}
-        <Card 
-          title="Recent Messages" 
-          bordered={false} 
-          style={{ borderRadius: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}
-          headStyle={{ borderBottom: 'none' }}
-        >
-          <List
-            itemLayout="horizontal"
-            dataSource={recentMessages}
-            renderItem={(item) => (
-              <List.Item style={{ padding: '12px 0', borderBottom: 'none', cursor: 'pointer' }}>
-                <List.Item.Meta
-                  avatar={<Avatar src={item.avatar} size={40} />}
-                  title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Text strong style={{ fontSize: '14px' }}>{item.name}</Text>
-                      <Text type="secondary" style={{ fontSize: '11px' }}>{item.time}</Text>
-                    </div>
-                  }
-                  description={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text type="secondary" ellipsis style={{ maxWidth: '150px', fontSize: '12px' }}>{item.msg}</Text>
-                      {item.unread && <Badge count={item.unread} style={{ backgroundColor: '#8b5cf6' }} />}
-                    </div>
-                  }
-                />
-              </List.Item>
-            )}
-          />
-        </Card>
       </Col>
     </Row>
   );

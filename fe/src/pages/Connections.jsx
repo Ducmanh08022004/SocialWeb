@@ -63,7 +63,7 @@ const Connections = () => {
         <List.Item>
           <Card bodyStyle={{ padding: '16px', textAlign: 'center' }}>
             <Link to={`/profile/${item.friend_id}`}>
-              <Avatar src={item.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={80} style={{ marginBottom: '12px' }} />
+              <Avatar src={item.avatar_thumbnail_url || item.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={80} style={{ marginBottom: '12px' }} />
             </Link>
             <div style={{ marginBottom: '12px' }}>
               <Title level={5} style={{ margin: 0 }}>{item.name}</Title>
@@ -103,7 +103,7 @@ const Connections = () => {
           ]}
         >
           <List.Item.Meta
-            avatar={<Avatar src={item.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />}
+            avatar={<Avatar src={item.avatar_thumbnail_url || item.avatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />}
             title={<Link to={`/profile/${item.senderId}`}>{item.name}</Link>}
             description={
                 <div>

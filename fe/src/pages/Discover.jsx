@@ -82,7 +82,7 @@ const Discover = () => {
             >
               <Avatar 
                 size={80} 
-                src={user.Profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
+                src={user.Profile?.avatar_thumbnail_url || user.Profile?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`} 
                 style={{ marginBottom: '16px', cursor: 'pointer' }}
                 onClick={() => navigate(`/profile/${user.id}`)}
               />
@@ -134,7 +134,7 @@ const Discover = () => {
                     type="primary" 
                     block 
                     icon={<PlusOutlined />}
-                    style={{ backgroundColor: '#8b5cf6', borderColor: '#8b5cf6', borderRadius: '6px', height: '40px' }}
+                    style={{ backgroundColor: '#1890FF', borderColor: '#1890FF', borderRadius: '6px', height: '40px' }}
                     onClick={() => handleFollow(user.id)}
                   >
                     Add Friend

@@ -181,7 +181,7 @@ const listFriends = async (req, res) => {
       username: user.username,
       name: user.Profile?.fullname || user.username,
       avatar: user.Profile?.avatar_url || null,
-      avatar_thumbnail: user.Profile?.avatar_thumbnail_url || null
+      avatar_thumbnail_url: user.Profile?.avatar_thumbnail_url || null
     }));
 
     res.json({ friends });
@@ -205,7 +205,7 @@ const listPendingRequests = async (req, res) => {
           attributes: ['id', 'username'],
           include: [{
             model: require('../models').Profile,
-            attributes: ['fullname', 'avatar_url']
+            attributes: ['fullname', 'avatar_url', 'avatar_thumbnail_url']
           }]
         }
       ]
@@ -217,6 +217,7 @@ const listPendingRequests = async (req, res) => {
       username: req.sender.username,
       name: req.sender.Profile?.fullname || req.sender.username,
       avatar: req.sender.Profile?.avatar_url,
+      avatar_thumbnail_url: req.sender.Profile?.avatar_thumbnail_url,
       created_at: req.created_at
     }));
 

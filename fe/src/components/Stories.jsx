@@ -74,7 +74,7 @@ const Stories = () => {
               <div onClick={() => openViewer(myStoryIndex)}>
                 <Avatar 
                   size={64} 
-                  src={user?.Profile?.avatar_url} 
+                  src={user?.Profile?.avatar_thumbnail_url || user?.Profile?.avatar_url} 
                   icon={<UserOutlined />}
                   style={{ 
                     border: '3px solid #1890ff',
@@ -113,7 +113,7 @@ const Stories = () => {
               <div style={{ position: 'relative' }}>
                 <Avatar 
                   size={64} 
-                  src={user?.Profile?.avatar_url} 
+                  src={user?.Profile?.avatar_thumbnail_url || user?.Profile?.avatar_url} 
                   icon={<UserOutlined />}
                   style={{ 
                     border: '3px solid #f0f0f0',
@@ -158,7 +158,7 @@ const Stories = () => {
           >
             <Avatar 
               size={64} 
-              src={storyGroup.user.Profile?.avatar_url} 
+              src={storyGroup.user.Profile?.avatar_thumbnail_url || storyGroup.user.Profile?.avatar_url} 
               icon={<UserOutlined />}
               style={{ 
                 border: '3px solid #1890ff',

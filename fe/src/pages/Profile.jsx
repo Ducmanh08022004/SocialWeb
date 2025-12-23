@@ -47,6 +47,9 @@ const Profile = () => {
   const dragStartY = React.useRef(0);
   const dragStartPos = React.useRef(0);
 
+  // Avatar hover state
+  const [avatarHovered, setAvatarHovered] = useState(false);
+
   // Edit Profile State
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [form] = Form.useForm();
@@ -538,17 +541,41 @@ const Profile = () => {
         <div style={{ padding: '0 24px 24px 24px', position: 'relative' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: '-50px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <div style={{ position: 'relative' }}>
+              <div 
+                style={{ position: 'relative' }} 
+                onMouseEnter={() => is3DModel(profileUser?.avatar_url) && setAvatarHovered(true)}
+                onMouseLeave={() => setAvatarHovered(false)}
+              >
                 <Avatar 
                     size={120} 
                     src={profileUser.avatar_thumbnail_url || profileUser.avatar_url}
-                    onClick={() => is3DModel(profileUser.avatar_url) && setIs3DViewerVisible(true)}
                     style={{ 
                         border: '4px solid white', 
                         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                         cursor: is3DModel(profileUser.avatar_url) ? 'pointer' : 'default'
                     }}
                 />
+                {is3DModel(profileUser.avatar_url) && avatarHovered && (
+                    <div 
+                        style={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: 'rgba(0, 0, 0, 0.5)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            border: '4px solid white'
+                        }}
+                        onClick={() => setIs3DViewerVisible(true)}
+                    >
+                        <Text style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold' }}>View 3D</Text>
+                    </div>
+                )}
                 {isOwnProfile && (
                     <Button 
                         shape="circle" 

@@ -283,7 +283,7 @@ const getPostComments = async (req, res) => {
           attributes: ['id', 'username'],
           include: {
             model: Profile,
-            attributes: ['fullname', 'avatar_url']
+            attributes: ['fullname', 'avatar_url', 'avatar_thumbnail_url']
           }
         }
       ],

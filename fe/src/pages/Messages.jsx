@@ -255,7 +255,7 @@ const Messages = () => {
                 <List.Item.Meta
                   avatar={
                     <Badge count={item.unreadCount} size="small">
-                        <Avatar src={item.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
+                        <Avatar src={item.otherUserAvatarThumbnail || item.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} size={48} />
                     </Badge>
                   }
                   title={<Text strong>{item.name}</Text>}
@@ -282,10 +282,10 @@ const Messages = () => {
             {/* Chat Header */}
             <div style={{ padding: '16px', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <Avatar src={activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} />
+                <Avatar src={activeConversation.otherUserAvatarThumbnail || activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} />
                 <Title level={5} style={{ margin: 0 }}>{activeConversation.name}</Title>
               </div>
-              <Button icon={<InfoCircleOutlined />} type="text" />
+        
             </div>
 
             {/* Messages Area */}
@@ -303,7 +303,7 @@ const Messages = () => {
                   >
                     {!isMyMessage && (
                         <Avatar 
-                            src={activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
+                            src={activeConversation.otherUserAvatarThumbnail || activeConversation.otherUserAvatar || "https://cdn-icons-png.flaticon.com/512/149/149071.png"} 
                             size={32} 
                             style={{ marginRight: '8px', marginTop: '4px' }} 
                         />
@@ -334,15 +334,6 @@ const Messages = () => {
             {/* Input Area */}
             <div style={{ padding: '16px', background: '#fff', borderTop: '1px solid #f0f0f0' }}>
               <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                <Tooltip title="Gợi ý trả lời nhanh">
-                  <Button 
-                    icon={<BulbOutlined />} 
-                    shape="circle"
-                    onClick={handleSuggestReply}
-                    loading={aiLoading}
-                    disabled={messages.length === 0}
-                  />
-                </Tooltip>
                 <TextArea 
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
