@@ -20,7 +20,7 @@ const register = async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const user = await User.create({ username, password: hash, email });
 
-    if (fullname) {
+    if (username) {
       await Profile.create({ user_id: user.id, fullname, avatar_url: 'social_network/publicAsset/default_avatar.png' });
     }
 
